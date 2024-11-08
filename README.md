@@ -1,8 +1,5 @@
+
 # **Breast Ultrasound Image Segmentation Using Deep Learning for Accurate Diagnosis of Breast Lesions**
-
-**Supervisor(s):** Zhikai Yang  
-**Flavor/Track:** Imaging / Computer Science  
-
 
 ## **Background**
 
