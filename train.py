@@ -112,6 +112,7 @@ def main():
         print('time_for_training ', time_end - time_start)
 
         net.eval()
+        # edice means current dice of this epoch
         if epoch and epoch % args.val_freq == 0 or epoch == settings.EPOCH-1:
             if args.dataset != 'REFUGE':
                 tol, (eiou, edice) = function.validation_sam(args, nice_test_loader, epoch, net, writer)

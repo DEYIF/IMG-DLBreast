@@ -1,4 +1,4 @@
-name: med_adapt
+name: sam_adapt
 channels:
   - pytorch
   - conda-forge
@@ -265,7 +265,8 @@ dependencies:
       - ninja==1.11.1
       - nni==2.10
       - nptyping==2.5.0
-      - opencv-python==4.7.0.72
+      # - opencv-python==4.7.0.72
+      - opencv-python
       - openslide-python==1.1.2
       - optuna==3.1.1
       - partd==1.2.0
