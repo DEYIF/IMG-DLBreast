@@ -7,6 +7,7 @@ from utils import *
 
 from .atlas import Atlas
 from .brat import Brat
+from .busi import busi
 from .ddti import DDTI
 from .isic import ISIC2016
 from .kits import KITS
@@ -48,6 +49,15 @@ def get_dataloader(args):
 
         nice_train_loader = DataLoader(isic_train_dataset, batch_size=args.b, shuffle=True, num_workers=8, pin_memory=True)
         nice_test_loader = DataLoader(isic_test_dataset, batch_size=args.b, shuffle=False, num_workers=8, pin_memory=True)
+        '''end'''
+    
+    elif args.dataset == 'busi':
+        '''BUSI data (Ultrasound Images)'''
+        busi_train_dataset = busi(args, args.data_path, transform = transform_train, transform_msk= transform_train_seg, mode = 'Training')
+        busi_test_dataset = busi(args, args.data_path, transform = transform_test, transform_msk= transform_test_seg, mode = 'Test')
+
+        nice_train_loader = DataLoader(busi_train_dataset, batch_size=args.b, shuffle=True, num_workers=8, pin_memory=True)
+        nice_test_loader = DataLoader(busi_test_dataset, batch_size=args.b, shuffle=False, num_workers=8, pin_memory=True)
         '''end'''
 
     elif args.dataset == 'decathlon':
