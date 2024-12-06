@@ -17,3 +17,5 @@ This file contains a code to upload a set of images for training and testing the
 
 Note than an output directory for the segmentation of test images must be uploaded in this line:
 
+*training&testing.py*
+This file contains the code for training and testing the U-Net model, it can be run with the following line:
