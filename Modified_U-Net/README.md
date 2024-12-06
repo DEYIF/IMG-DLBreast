@@ -12,7 +12,7 @@ The aim is to perform binary image segmentation to accurately separate a single 
 This file contains th code of a traditional U-Net model, an architecture commonly used in the field of medicine for image segmentation which has been modified by incorporating attention gates and residual blocks to improve its performance. 
 
 *Prepare_dataset.py*:
-This script allows to upload customized paths for your images and labels, later pre-processed (resizing, normalization and augmentation) and used for training and testing the model. These images and labels can be uploaded following these instructions:
+This script allows to upload customized paths for your images and labels, later pre-processed (resizing, normalization and augmentation) and used for training and testing the model. Note: a directory to store the prediction masks must be introduced (follow similar steps as before).
 
 1. When you run the script, you will be prompted to input paths for the image and label directories. 
 
