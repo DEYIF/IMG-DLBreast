@@ -1,4 +1,4 @@
-**Modified U-Net model -- attention U-Net with residual blocks**
+## Modified U-Net model -- attention U-Net with residual blocks**
 
 This folder contains overall information and codes for employing a modified U-Net model for image segmentation.
 
@@ -13,9 +13,11 @@ This file contains the code of a traditional U-Net model, an architecture common
 This code can be run with the following line:
 
 *Prepare_dataset.py*
-This file contains a code to upload a set of images for training and testing the models. Images, which later will be pre-processed (resizing, normalization, augmentation), can be uploaded with the following line:
+This script allows to upload customized paths for your images and labels, later pre-processed (resizing, normalization and augmentation) and used for training and testing the model. These images and labels can be uploaded following these instructions:
 
-Note than an output directory for the segmentation of test images must be uploaded in this line:
+1. When you run the script, you will be prompted to input paths for the image and label directories. 
+
+2. Simply copy and paste your desired paths when prompted. If you want to use the default paths, press **Enter** without typing anything.
 
 *training&testing.py*
 This file contains the code for training and testing the U-Net model, it can be run with the following line:
