@@ -1,4 +1,4 @@
-## Modified U-Net model -- attention U-Net with residual blocks**
+## Modified U-Net model -- attention U-Net with residual blocks
 
 This folder contains overall information and codes for employing a modified U-Net model for image segmentation.
 
