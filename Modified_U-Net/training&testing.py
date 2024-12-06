@@ -67,3 +67,6 @@ def denormalize(image, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
     std = torch.tensor(std).view(3, 1, 1)
     image = image * std + mean  
     return image
+
+print("Please enter the paths for your image and label directories:")
+save_dir = input("Path to train image directory (default: './Data/prediction/'): ") or './Data/prediction/'
