@@ -75,3 +75,8 @@ train_image_dir = input("Path to train image directory (default: './Data/train/i
 train_label_dir = input("Path to train label directory (default: './Data/train/labels/'): ") or './Data/train/labels/'
 test_image_dir = input("Path to test image directory (default: './Data/test/images/'): ") or './Data/test/images/'
 test_label_dir = input("Path to test label directory (default: './Data/test/labels/'): ") or './Data/test/labels/'
+
+train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform)
+test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=transform)
+train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True) 
+test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False) 
