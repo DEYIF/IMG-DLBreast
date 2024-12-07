@@ -18,14 +18,13 @@ from omegaconf import OmegaConf
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 '''
-input this command to run this script:
-    python match_and_copy.py [path of the original dataset (bigger one)] [path of the reference dataset (smaller one)] [folder path you want to store the output dataset]
-for example:
-    python match_and_copy.py Dataset/BUS_all_dataset_resize/test/images Dataset/BUS_reduced/labels Dataset/BUS_reduced/images
-You can add suffix and file type in the end of the command, they are optional arguments (their default set is _pred and .png):
-    python match_and_copy.py Dataset/BUS_all_dataset_resize/test/images Dataset/BUS_reduced/labels Dataset/BUS_reduced/images --suffix _pred --extension .png
+Use this command to run:
+1 stands for single point prompt, and 2 stands for single box prompt:
+    python /root/vmcbh/sam/sam_original.py 1 /root/Dataset/BUS_reduced/images /root/Dataset/BUS_reduced/labels /root/Dataset/BUS_reduced/results
+-is_demo = False will run the whole dataset, otherwise just 10 images:
+    python /root/vmcbh/sam/sam_original.py 1 /root/Dataset/BUS_reduced/images /root/Dataset/BUS_reduced/labels /root/Dataset/BUS_reduced/results --is_demo False
 '''
-def sam_original(prompt_type, img_folder, prompt_folder, output_folder, batch_size, is_demo=True, file_extension=".png"):
+def sam_original(prompt_type, img_folder, prompt_folder, output_folder, img_num=10, is_demo=True, file_extension=".png"):
     """
     Use the ORIGINAL SAM MODEL to segment and evaluate a dataset.
 
@@ -39,7 +38,7 @@ def sam_original(prompt_type, img_folder, prompt_folder, output_folder, batch_si
         file_extension (str): File extension to filter and match (default: ".png").
     """
     prompt_type = int(prompt_type)
-    batch_size = int(batch_size)
+    img_num = int(img_num)
 
     # Ensure the target folder exists
     os.makedirs(output_folder, exist_ok=True)
@@ -80,25 +79,30 @@ def sam_original(prompt_type, img_folder, prompt_folder, output_folder, batch_si
     print(f"output folder: {output_folder}")
 
     
-    max_count = 10
+    max_count = img_num
     count = 0
-    suffix = "_pred"
-    for filename in os.listdir(img_folder):
-        if filename.endswith(".png") or filename.endswith(".jpg"):  # only operate image file
+    # suffix = "_pred"
+    filelist = os.listdir(img_folder)
+    sorted_filelist = sorted(filelist)  # from a to z
+    for filename in sorted_filelist:
+        if filename.endswith(file_extension):  # only operate image file
             img_path = os.path.join(img_folder, filename)
-            type = os.path.splitext(filename)[1]
-            prompt_filename = os.path.splitext(filename)[0] + suffix + type
-            '''generate prompt'''
-            prompt_path = os.path.join(prompt_folder, prompt_filename)
+            # type = os.path.splitext(filename)[1]
+            # prompt_filename = os.path.splitext(filename)[0] + suffix + type
+            prompt_path = os.path.join(prompt_folder, filename)
             prompt = Image.open(prompt_path)
             prompt = np.array(prompt.convert("L")) / 255  # convert to 01 img
-            median_x, median_y = find_median_point(prompt)
-            input_point = np.array([[median_y, median_x]])  # note that is (y,x)
+            '''generate prompt'''
+            if prompt_type == 1:
+                median_x, median_y = find_median_point(prompt)
+                prompt_input = np.array([[median_y, median_x]])  # note that is (y,x)
+            elif prompt_type == 2:
+                prompt_input = find_rect_box(prompt)
             '''generate prompt'''
 
             # The shape of mask is [h,w,4], including a transparent channel
             # The shape of mask_binary is [h,w]. It's a 0-1 binary array
-            mask_binary, mask = segment(prompt_type, input_point, img_path, predictor, show_mask=False)  # 1 stands for Single Point Prompt Type
+            mask_binary, mask = segment(prompt_type, prompt_input, img_path, predictor, show_mask=False)  # 1 stands for Single Point Prompt Type
             output_path = os.path.join(output_folder,filename)
 
             color = np.array([30/255, 144/255, 255/255, 0.6])
@@ -107,11 +111,9 @@ def sam_original(prompt_type, img_folder, prompt_folder, output_folder, batch_si
             mask = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
             mask_binary = mask_binary.astype(np.uint8)
             mask_binary = mask_binary.reshape(h, w)
-            print(mask_binary)
-            mask_binary = mask_binary * 255
-            print(mask_binary)
 
-            mask_binary_img = Image.fromarray(mask_binary)
+            mask_binary_img = mask_binary * 255
+            mask_binary_img = Image.fromarray(mask_binary_img)
             mask_binary_img.save(output_path)
             #I added a break line to run just one single image, delete it to run all images in the folder
             if is_demo == True:
@@ -126,10 +128,10 @@ if __name__ == "__main__":
     parser.add_argument("img_folder", help="Path to the orginal images (Ultrasound image) folder.")
     parser.add_argument("prompt_folder", help="Path to the masks (ground truth or generated by U-Net) folder.")
     parser.add_argument("output_folder", help="Path to the output folder where matched files will be copied.")
-    parser.add_argument("-b", default="1", help="Number or the batch size")
+    parser.add_argument("--img_num", default="10", help="Number or the batch size")
     parser.add_argument("--is_demo", default=True, help="True means this run is for testing or presenting, will just run a part of the dataset (10 images)")
     parser.add_argument("--extension", default=".png", help="File extension to match (default: '.png').")
 
     args = parser.parse_args()
 
-    sam_original(args.prompt_type, args.img_folder, args.prompt_folder, args.output_folder, args.b, args.is_demo, args.extension)
+    sam_original(args.prompt_type, args.img_folder, args.prompt_folder, args.output_folder, args.img_num, args.is_demo, args.extension)

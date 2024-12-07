@@ -77,26 +77,26 @@ def calculate_iou(binary_mask1, binary_mask2):
     union = np.logical_or(binary_mask1, binary_mask2).sum()
     return 1.0 if union == 0 else intersection / union
 
-
-
-def find_median_point(gt):
+def find_median_point(prompt):
     """
     find the median point of all white (front mask) points
 
-    gt: ground truth binary mask
+    prompt: input prompt mask
 
     return:
     median_x, median_y: the coordinates of the median point
     """
     # find all white (front mask) points
-    white_pixels = np.column_stack(np.where(gt == 1))
+    white_pixels = np.column_stack(np.where(prompt == 1))
 
     if len(white_pixels) > 0:
-        median_x = np.median(white_pixels[:, 0]).astype(int)
-        median_y = np.median(white_pixels[:, 1]).astype(int)
+        row_num = white_pixels.shape[0] # number of rows
+        median = np.median(np.arange(row_num)).astype(int)
+        median_x = white_pixels[median,0]
+        median_y = white_pixels[median,1]
 
         # validaton
-        # assert gt[median_x, median_y] == 1, "Median point not in white region"
+        assert prompt[median_x, median_y] == 1, "Median point not in white region"
 
         return median_x, median_y
     else:
