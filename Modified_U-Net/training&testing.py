@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm 
 from Prepare_dataset import test_loader, train_loader
-from code_U-Net_model import UNet
+from code_UNet_model import UNet
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
