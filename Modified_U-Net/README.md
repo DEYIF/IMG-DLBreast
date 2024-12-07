@@ -8,7 +8,7 @@ The aim is to perform binary image segmentation to accurately separate a single 
 
 **CODE:**
 
-*code_U-net_model.py*:
+*code_UNet_model.py*:
 This file contains th code of a traditional U-Net model, an architecture commonly used in the field of medicine for image segmentation which has been modified by incorporating attention gates and residual blocks to improve its performance. 
 
 *Prepare_dataset.py*:
