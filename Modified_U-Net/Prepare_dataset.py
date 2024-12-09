@@ -62,10 +62,11 @@ transform = A.Compose([
     ToTensorV2(), 
 ])
 
-test_image_dir = './BUS_dataset/BUS_all_dataset_resize/test/images/'
-test_label_dir = './BUS_dataset/BUS_all_dataset_resize/test/labels/'
-train_image_dir = './BUS_dataset/BUS_all_dataset_resize/train/images/'
-train_label_dir = './BUS_dataset/BUS_all_dataset_resize/train/labels/'
+print("Please enter the paths for your image and label directories:")
+test_image_dir = input("Path to train image directory (default: './Data/test/images/'): ") or './Data/test/images/'
+test_label_dir = input("Path to train image directory (default: './Data/test/labels/'): ") or './Data/test/labels/'
+train_image_dir = input("Path to train image directory (default: './Data/train/images/'): ") or './Data/test/images/'
+train_label_dir = input("Path to train image directory (default: './Data/train/labels/'): ") or './Data/train/labels/'
 
 
 train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform)
