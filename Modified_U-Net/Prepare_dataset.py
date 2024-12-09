@@ -66,3 +66,9 @@ test_image_dir = './BUS_dataset/BUS_all_dataset_resize/test/images/'
 test_label_dir = './BUS_dataset/BUS_all_dataset_resize/test/labels/'
 train_image_dir = './BUS_dataset/BUS_all_dataset_resize/train/images/'
 train_label_dir = './BUS_dataset/BUS_all_dataset_resize/train/labels/'
+
+
+train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform)
+test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=transform)
+train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True) 
+test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False) 
