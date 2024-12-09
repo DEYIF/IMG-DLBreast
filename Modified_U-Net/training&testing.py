@@ -68,5 +68,46 @@ def denormalize(image, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
     image = image * std + mean  
     return image
 
-print("Please enter the paths for your image and label directories:")
-save_dir = input("Path to train image directory (default: './Data/prediction/'): ") or './Data/prediction/'
+def evaluate_model(model, test_loader):
+    model.eval() 
+    original_filenames = sorted(os.listdir(test_image_dir))
+    with torch.no_grad(): 
+        for idx, (images, labels) in enumerate(test_loader):
+            images, labels = images.to(device), labels.to(device) 
+            outputs = torch.sigmoid(model(images))  
+            outputs = (outputs > 0.5).float()  
+            
+            print("Please enter the paths for your image and label directories:")
+            save_dir = input("Path to train image directory (default: './Data/prediction/'): ") or './Data/prediction/'
+            suffix = "_pred"
+            for i in range(len(outputs)):
+                original_filename = original_filenames[idx * len(outputs) + i]
+                name, ext = os.path.splitext(original_filename)  
+                new_filename = f"{name}{suffix}.png"  
+                mask = outputs[i].squeeze().cpu().numpy() * 255  
+                mask = mask.astype('uint8')  
+                mask_path = os.path.join(save_dir, new_filename)
+                Image.fromarray(mask).save(mask_path)
+            print(f"Predictions saved in: {save_dir}")
+
+            plt.figure(figsize=(15, 5))
+            for i in range(len(images)):
+                denorm_image = denormalize(images[i].cpu()).permute(1, 2, 0).numpy() 
+                denorm_image = np.clip(denorm_image, 0, 1)  
+
+                plt.subplot(len(images), 3, i * 3 + 1)
+                plt.title("Input Image")
+                plt.imshow(denorm_image)
+                plt.axis('off')
+
+                plt.subplot(len(images), 3, i * 3 + 2)
+                plt.title("True Mask")
+                plt.imshow(labels[i].cpu().numpy().squeeze(), cmap='gray')
+                plt.axis('off')
+
+                plt.subplot(len(images), 3, i * 3 + 3)
+                plt.title("Predicted Mask")
+                plt.imshow(outputs[i].cpu().numpy().squeeze(), cmap='gray')
+                plt.axis('off')
+
+            plt.show()
