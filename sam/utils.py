@@ -100,17 +100,20 @@ def find_median_point(prompt):
 
         return median_x, median_y
     else:
-        raise ValueError("No white pixels found in the mask")
+        # raise ValueError("No white pixels found in the mask")
+        # return a center point of the original image
+        return prompt.shape[1]//2, prompt.shape[0]//2
 
-def find_rect_box(gt):
+def find_rect_box(prompt):
     # find all white pixels
-    white_pixels = np.column_stack(np.where(gt == 1))
+    white_pixels = np.column_stack(np.where(prompt == 1))
     # find the boundary
     if len(white_pixels) > 0:
         x_min, y_min = np.min(white_pixels, axis=0)
         x_max, y_max = np.max(white_pixels, axis=0)
     else:
-        print("invalid mask")
+        # print("invalid mask")
+        return np.array([0,0,prompt.shape[1],prompt.shape[0]])
     input_box = np.array([y_min, x_min, y_max, x_max])  # note that is (y,x)
     return input_box
 

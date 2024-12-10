@@ -90,6 +90,8 @@ def sam_original(prompt_type, img_folder, prompt_folder, output_folder, img_num=
             # type = os.path.splitext(filename)[1]
             # prompt_filename = os.path.splitext(filename)[0] + suffix + type
             prompt_path = os.path.join(prompt_folder, filename)
+            if not os.path.isfile(prompt_path):
+                break
             prompt = Image.open(prompt_path)
             prompt = np.array(prompt.convert("L")) / 255  # convert to 01 img
             '''generate prompt'''
