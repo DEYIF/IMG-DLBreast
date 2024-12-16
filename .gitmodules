@@ -1,0 +1,3 @@
+[submodule "Medical-SAM-Adapter"]
+	path = Medical-SAM-Adapter
+	url = https://github.com/DEYIF/Medical-SAM-Adapter.git
