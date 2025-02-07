@@ -14,10 +14,11 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm 
 
 class BreastCancerDataset(Dataset):
-    def __init__(self, image_dir, label_dir, transform=None):
+    def __init__(self, image_dir, label_dir, transform=None, save_dir=None):
         self.image_dir = image_dir
         self.label_dir = label_dir
         self.transform = transform
+        self.save_dir = save_dir
 
         image_files = sorted(os.listdir(image_dir))
         label_files = sorted(os.listdir(label_dir))
@@ -27,6 +28,11 @@ class BreastCancerDataset(Dataset):
         ]
         if not self.paired_files:
             raise ValueError("No matching image-label pairs found.")
+        
+        # create save img
+        if self.save_dir:
+            os.makedirs(os.path.join(self.save_dir, "images"), exist_ok=True)
+            os.makedirs(os.path.join(self.save_dir, "labels"), exist_ok=True)
 
     def __len__(self):
         return len(self.paired_files)
@@ -51,25 +57,80 @@ class BreastCancerDataset(Dataset):
 
         label = torch.tensor(label, dtype=torch.float32)  
 
+         # save images after augmentation
+        if self.save_dir:
+            save_image_path = os.path.join(self.save_dir, "images", img_name)
+            save_label_path = os.path.join(self.save_dir, "labels", lbl_name)
+
+            # transfer back to PIL format and save
+            Image.fromarray((image.permute(1, 2, 0).numpy() * 255).astype(np.uint8)).convert("L").save(save_image_path)
+            Image.fromarray((label.numpy() * 255).astype(np.uint8)).convert("L").save(save_label_path)
+
         return image, label
 
+# Data Augmentation 数据增强 
 transform = A.Compose([
     A.Resize(256, 256), 
     A.HorizontalFlip(p=0.5), 
     A.RandomRotate90(p=0.5), 
-    A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5), 
-    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)), 
+    A.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0.05, p=0.5), 
+    #A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)), 
+    A.ToFloat(),
     ToTensorV2(), 
 ])
 
+# only do normalization for test data
+test_transform = A.Compose([
+    A.Resize(256, 256),
+    #A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+    A.ToFloat(),
+    ToTensorV2(),
+])
+
+print("Please decide train or test")
+is_train = input("[train/test](default: test):") or 'test'
+if is_train == 'train':
+    is_train = True
+elif is_train == 'test':
+    is_train = False
+else:
+    print("Please enter the correct input")
+    exit()
+
+
 print("Please enter the paths for your image and label directories:")
-test_image_dir = input("Path to train image directory (default: './Data/test/images/'): ") or './Data/test/images/'
-test_label_dir = input("Path to train image directory (default: './Data/test/labels/'): ") or './Data/test/labels/'
-train_image_dir = input("Path to train image directory (default: './Data/train/images/'): ") or './Data/test/images/'
-train_label_dir = input("Path to train image directory (default: './Data/train/labels/'): ") or './Data/train/labels/'
+dataset_dir = input("Path to dataset parent directory (default: '/root/Dataset/BUS_adapter_demo'): ") or '/root/Dataset/BUS_adapter_demo'
+
+if is_train:
+    train_image_dir = os.path.join(dataset_dir, 'train', 'images')
+    train_label_dir = os.path.join(dataset_dir, 'train', 'labels')
+    train_augu_dir = os.path.join(dataset_dir, 'augmented', 'train')
+
+    train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform, save_dir=None)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True) 
+else:
+    test_image_dir = os.path.join(dataset_dir, 'test', 'images')
+    test_label_dir = os.path.join(dataset_dir, 'test', 'labels')
+    test_augu_dir = os.path.join(dataset_dir, 'augmented', 'test')
+
+    test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=test_transform, save_dir=None)
+    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False) 
 
 
-train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform)
-test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=transform)
-train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True) 
-test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False) 
+if __name__ == "__main__":
+
+    # When directly run this file, it will save all the data to sava_dir
+    if is_train:
+        train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform, save_dir=train_augu_dir)
+        train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+        for images, labels in train_loader:
+            print("Batch of images shape:", images.shape)  # 输出形状，例如 [4, 3, 256, 256]（4 张图像）
+            print("Batch of labels shape:", labels.shape)  # 输出标签形状，例如 [4, 1]（4 个标签）
+    else:
+        test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=test_transform, save_dir=test_augu_dir)
+        test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False) 
+        for images, labels in test_loader:
+            print("Batch of images shape:", images.shape)  # 输出形状，例如 [4, 3, 256, 256]（4 张图像）
+            print("Batch of labels shape:", labels.shape)  # 输出标签形状，例如 [4, 1]（4 个标签）
+
+    
