@@ -1,6 +1,10 @@
-## Modified U-Net model -- attention U-Net with residual blocks
+# How To Use 
+For using U-Net to segment images, first ensure that all the 3 scripts are in the same folder. After that, You just need to run the script *training&testing.py*. Then you will be prompted to choose several options.
 
-This folder contains overall information and codes for employing a modified U-Net model for image segmentation.
+# Script Introduction
+Modified U-Net model -- attention U-Net with residual blocks
+
+This folder contains codes for employing a modified U-Net model for image segmentation.
 
 **GOAL:**
 
