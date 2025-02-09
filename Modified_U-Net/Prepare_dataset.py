@@ -101,20 +101,19 @@ else:
 print("Please enter the paths for your image and label directories:")
 dataset_dir = input("Path to dataset parent directory (default: '/root/Dataset/BUS_adapter_demo'): ") or '/root/Dataset/BUS_adapter_demo'
 
-if is_train:
-    train_image_dir = os.path.join(dataset_dir, 'train', 'images')
-    train_label_dir = os.path.join(dataset_dir, 'train', 'labels')
-    train_augu_dir = os.path.join(dataset_dir, 'augmented', 'train')
+train_image_dir = os.path.join(dataset_dir, 'train', 'images')
+train_label_dir = os.path.join(dataset_dir, 'train', 'labels')
+train_augu_dir = os.path.join(dataset_dir, 'augmented', 'train')
 
-    train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform, save_dir=None)
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True) 
-else:
-    test_image_dir = os.path.join(dataset_dir, 'test', 'images')
-    test_label_dir = os.path.join(dataset_dir, 'test', 'labels')
-    test_augu_dir = os.path.join(dataset_dir, 'augmented', 'test')
+train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform, save_dir=None)
+train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True) 
 
-    test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=test_transform, save_dir=None)
-    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False) 
+test_image_dir = os.path.join(dataset_dir, 'test', 'images')
+test_label_dir = os.path.join(dataset_dir, 'test', 'labels')
+test_augu_dir = os.path.join(dataset_dir, 'augmented', 'test')
+
+test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=test_transform, save_dir=None)
+test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False) 
 
 
 if __name__ == "__main__":

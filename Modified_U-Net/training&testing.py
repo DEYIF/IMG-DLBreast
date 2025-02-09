@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm 
 # 修改
-from Prepare_dataset import test_loader, train_loader, dataset_dir, is_train
+from Prepare_dataset import dataset_dir, is_train, train_loader, test_loader
 from code_UNet_model import UNet
 
 from datetime import datetime
@@ -70,6 +70,8 @@ def train_model(model, train_loader, criterion, optimizer, save_root, num_epochs
           torch.save(model, f"{save_path}/model_full_{epoch+1}.pth")
 
 def evaluate_model(model, test_loader):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
     model.eval()
     test_image_dir = os.path.join(dataset_dir, 'test', 'images')
     original_filenames = sorted(os.listdir(test_image_dir))
