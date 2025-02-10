@@ -15,7 +15,7 @@ from tqdm import tqdm
 # 修改
 from Prepare_dataset import dataset_dir, is_train, train_loader, test_loader
 from code_UNet_model import UNet
-
+import evaluate
 from datetime import datetime
 class BCEDiceLoss(nn.Module):
     def __init__(self):
@@ -84,7 +84,7 @@ def evaluate_model(model, test_loader):
             outputs = torch.sigmoid(model(images))
             outputs = (outputs > 0.5).float()
 
-            save_dir = os.path.join(dataset_dir, 'prediction_nuet', 'images')
+            save_dir = os.path.join(dataset_dir, 'test', 'prompts')
             for i in range(len(outputs)):
                 original_filename = original_filenames[idx * len(outputs) + i]
                 name, ext = os.path.splitext(original_filename)
@@ -129,6 +129,43 @@ def evaluate_model(model, test_loader):
 
             plt.tight_layout()
             plt.show()
+    
+    # Input ground truth and result folders
+    gt_folder = os.path.join(dataset_dir, 'test', 'labels')
+    result_folder = save_dir
+    csv_folder = os.path.join(dataset_dir, 'test', 'csv')
+    # Ensure the CSV folder exists, create it if it doesn't
+    if not os.path.exists(csv_folder):
+        os.makedirs(csv_folder)
+        print(f"Created folder: {csv_folder}")
+
+    # Calculate metrics
+    results = evaluate.calculate_dice_and_iou(gt_folder, result_folder)
+
+    # Calculate statistics
+    stats = evaluate.calculate_statistics(results)
+
+    # Save individual metrics to CSV
+    individual_file = os.path.join(csv_folder, "individual_metrics.csv")
+    try:
+        with open(individual_file, "w", newline='') as f:
+            f.write("Filename,Dice,IoU\n")
+            for filename, dice, iou in results:
+                f.write(f"{filename},{dice:.4f},{iou:.4f}\n")
+        print(f"Individual metrics saved to '{individual_file}'.")
+    except Exception as e:
+        print(f"Error saving individual metrics: {e}")
+
+    # Save summary metrics to CSV
+    summary_file = os.path.join(csv_folder, "summary_metrics.csv")
+    try:
+        with open(summary_file, "w", newline='') as f:
+            f.write("Metric,Mean,Variance\n")
+            f.write(f"Dice,{stats['Dice_mean']:.4f},{stats['Dice_variance']:.4f}\n")
+            f.write(f"IoU,{stats['IoU_mean']:.4f},{stats['IoU_variance']:.4f}\n")
+        print(f"Summary metrics saved to '{summary_file}'.")
+    except Exception as e:
+        print(f"Error saving summary metrics: {e}")
 
 if __name__ == "__main__":
 
@@ -138,21 +175,9 @@ if __name__ == "__main__":
     criterion = BCEDiceLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4) 
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) 
-
-    # print("Please decide train or test")
-    # is_train = input("[train/test](default: test):") or 'test'
-    # if is_train == 'train':
-    #     is_train = True
-    # elif is_train == 'test':
-    #     is_train = False
-    # else:
-    #     print("Please enter the correct input")
-    #     exit()
     
     if is_train:
         train_model(model, train_loader, criterion, optimizer, num_epochs=8)
-        # evaluate_model(model, test_loader)
-        # Save training
         torch.save(model.state_dict(), 'model_sd.pth')
         torch.save(model, 'model_full.pth')
     else:
@@ -160,3 +185,5 @@ if __name__ == "__main__":
         model_path = input("Please enter the path to the model(default:/root/model_full.pth):") or '/root/model_full.pth'
         my_model = torch.load(model_path)
         evaluate_model(my_model, test_loader)
+
+    
