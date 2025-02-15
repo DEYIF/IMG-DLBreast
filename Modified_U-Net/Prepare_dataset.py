@@ -12,7 +12,7 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm 
-
+import cv2
 class BreastCancerDataset(Dataset):
     def __init__(self, image_dir, label_dir, transform=None, save_dir=None):
         self.image_dir = image_dir
@@ -26,8 +26,8 @@ class BreastCancerDataset(Dataset):
             (img, lbl) for img, lbl in zip(image_files, label_files)
             if os.path.splitext(img)[0] == os.path.splitext(lbl)[0]
         ]
-        if not self.paired_files:
-            raise ValueError("No matching image-label pairs found.")
+        # if not self.paired_files:
+        #     raise ValueError("No matching image-label pairs found.")
         
         # create save img
         if self.save_dir:
@@ -82,6 +82,8 @@ transform = A.Compose([
 # only do normalization for test data
 test_transform = A.Compose([
     A.Resize(256, 256),
+    # A.LongestMaxSize(max_size=256),  # 先等比例缩放，使最长边变成 256
+    # A.PadIfNeeded(min_height=256, min_width=256, border_mode=cv2.BORDER_CONSTANT),  # 用0填充
     #A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     A.ToFloat(),
     ToTensorV2(),
@@ -101,19 +103,21 @@ else:
 print("Please enter the paths for your image and label directories:")
 dataset_dir = input("Path to dataset parent directory (default: '/root/Dataset/BUS_adapter_demo'): ") or '/root/Dataset/BUS_adapter_demo'
 
-train_image_dir = os.path.join(dataset_dir, 'train', 'images')
-train_label_dir = os.path.join(dataset_dir, 'train', 'labels')
-train_augu_dir = os.path.join(dataset_dir, 'augmented', 'train')
+if is_train:
+    train_image_dir = os.path.join(dataset_dir, 'train', 'images')
+    train_label_dir = os.path.join(dataset_dir, 'train', 'labels')
+    train_augu_dir = os.path.join(dataset_dir, 'augmented', 'train')
 
-train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform, save_dir=None)
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True) 
+    train_dataset = BreastCancerDataset(train_image_dir, train_label_dir, transform=transform, save_dir=None)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True) 
 
-test_image_dir = os.path.join(dataset_dir, 'test', 'images')
-test_label_dir = os.path.join(dataset_dir, 'test', 'labels')
-test_augu_dir = os.path.join(dataset_dir, 'augmented', 'test')
+else:
+    test_image_dir = os.path.join(dataset_dir, 'test', 'images')
+    test_label_dir = os.path.join(dataset_dir, 'test', 'labels')
+    test_augu_dir = os.path.join(dataset_dir, 'augmented', 'test')
 
-test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=test_transform, save_dir=None)
-test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False) 
+    test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=test_transform, save_dir=None)
+    test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False) 
 
 
 if __name__ == "__main__":

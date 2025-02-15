@@ -13,8 +13,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm 
 # 修改
-from Prepare_dataset import dataset_dir, is_train, train_loader, test_loader
-from code_UNet_model import UNet
+from Prepare_dataset import dataset_dir, is_train
+if is_train:
+    from Prepare_dataset import train_loader
+else:
+    from Prepare_dataset import test_loader
+from code_UNet_model import UNet, Encoder
 import evaluate
 from datetime import datetime
 class BCEDiceLoss(nn.Module):
@@ -70,8 +74,8 @@ def train_model(model, train_loader, criterion, optimizer, save_root, num_epochs
           torch.save(model, f"{save_path}/model_full_{epoch+1}.pth")
 
 def evaluate_model(model, test_loader):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # model = model.to(device)
     model.eval()
     test_image_dir = os.path.join(dataset_dir, 'test', 'images')
     original_filenames = sorted(os.listdir(test_image_dir))
@@ -179,11 +183,12 @@ if __name__ == "__main__":
     if is_train:
         train_model(model, train_loader, criterion, optimizer, num_epochs=8)
         torch.save(model.state_dict(), 'model_sd.pth')
-        torch.save(model, 'model_full.pth')
+        # torch.save(model, 'model_full.pth')
     else:
         # Load training
-        model_path = input("Please enter the path to the model(default:/root/model_full.pth):") or '/root/model_full.pth'
-        my_model = torch.load(model_path)
-        evaluate_model(my_model, test_loader)
+        model_path = input("Please enter the path to the model(default:/root/checkpoints/model_sd_epoch_10.pth):") or '/root/checkpoints/model_sd_epoch_10.pth'
+        # my_model = torch.load(model_path)
+        model.load_state_dict(torch.load(model_path, map_location=device))  
+        evaluate_model(model, test_loader)
 
     
