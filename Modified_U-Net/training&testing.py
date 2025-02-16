@@ -78,19 +78,21 @@ def evaluate_model(model, test_loader):
     # model = model.to(device)
     model.eval()
     test_image_dir = os.path.join(dataset_dir, 'test', 'images')
-    original_filenames = sorted(os.listdir(test_image_dir))
+    # original_filenames = sorted(os.listdir(test_image_dir))
 
-    step = 5  # 每隔5张打印一次
+    save_dir = os.path.join(dataset_dir, 'test', 'prompts')
+    os.makedirs(save_dir, exist_ok=True)
 
     with torch.no_grad():
-        for idx, (images, labels) in enumerate(test_loader):
+        for idx, (images, labels, filenames) in enumerate(test_loader):
             images, labels = images.to(device), labels.to(device)
             outputs = torch.sigmoid(model(images))
             outputs = (outputs > 0.5).float()
 
-            save_dir = os.path.join(dataset_dir, 'test', 'prompts')
+
             for i in range(len(outputs)):
-                original_filename = original_filenames[idx * len(outputs) + i]
+                # original_filename = original_filenames[idx * len(outputs) + i]
+                original_filename = filenames[i]  # 直接从 DataLoader 获取
                 name, ext = os.path.splitext(original_filename)
                 new_filename = f"{name}.png"
                 mask = outputs[i].squeeze().cpu().numpy() * 255
@@ -100,14 +102,18 @@ def evaluate_model(model, test_loader):
                 Image.fromarray(mask).save(mask_path)
             print(f"Predictions saved in: {save_dir}")
 
-            # 选取间隔5的索引
+            step = min(5, len(images))  # 确保 step 不会超出范围
+            # 选取间隔step的索引
             indices = list(range(0, len(images), step))
-            num_selected = len(indices)
+            if not indices:
+                continue
 
-            if num_selected == 0:
-                continue  # 如果没有足够的样本，跳过
+            # num_selected = len(indices)
+            # if num_selected == 0:
+            #     continue  # 如果没有足够的样本，跳过
+            # fig, axes = plt.subplots(num_selected, 3, figsize=(10, num_selected * 3), squeeze=False)
 
-            fig, axes = plt.subplots(num_selected, 3, figsize=(10, num_selected * 3), squeeze=False)
+            fig, axes = plt.subplots(len(indices), 3, figsize=(10, len(indices) * 3), squeeze=False)
 
             # 设置每列的标题，只在第一行显示
             column_titles = ["Input Image", "True Mask", "Predicted Mask"]
@@ -116,6 +122,7 @@ def evaluate_model(model, test_loader):
 
             for row, idx in enumerate(indices):  # 遍历被选中的索引
                 # 直接使用张量，无需反归一化
+
                 image = images[idx].cpu().permute(1, 2, 0).numpy()
                 image = np.clip(image, 0, 1)  # 确保值在 [0,1]
 
@@ -138,6 +145,14 @@ def evaluate_model(model, test_loader):
     gt_folder = os.path.join(dataset_dir, 'test', 'labels')
     result_folder = save_dir
     csv_folder = os.path.join(dataset_dir, 'test', 'csv')
+
+    gt_files = {os.path.splitext(f)[0] for f in os.listdir(gt_folder)}
+    result_files = {os.path.splitext(f)[0] for f in os.listdir(result_folder)}
+
+    missing_files = gt_files - result_files
+    if missing_files:
+        print(f"Warning: Missing result files for {len(missing_files)} ground truth images: {missing_files}")
+
     # Ensure the CSV folder exists, create it if it doesn't
     if not os.path.exists(csv_folder):
         os.makedirs(csv_folder)

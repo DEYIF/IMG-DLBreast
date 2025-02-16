@@ -14,25 +14,48 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm 
 import cv2
 class BreastCancerDataset(Dataset):
+    # def __init__(self, image_dir, label_dir, transform=None, save_dir=None):
+    #     self.image_dir = image_dir
+    #     self.label_dir = label_dir
+    #     self.transform = transform
+    #     self.save_dir = save_dir
+
+    #     image_files = sorted(os.listdir(image_dir))
+    #     label_files = sorted(os.listdir(label_dir))
+    #     self.paired_files = [
+    #         (img, lbl) for img, lbl in zip(image_files, label_files)
+    #         if os.path.splitext(img)[0] == os.path.splitext(lbl)[0]
+    #     ]
+    #     # if not self.paired_files:
+    #     #     raise ValueError("No matching image-label pairs found.")
+        
+    #     # create save img
+    #     if self.save_dir:
+    #         os.makedirs(os.path.join(self.save_dir, "images"), exist_ok=True)
+    #         os.makedirs(os.path.join(self.save_dir, "labels"), exist_ok=True)
     def __init__(self, image_dir, label_dir, transform=None, save_dir=None):
         self.image_dir = image_dir
         self.label_dir = label_dir
         self.transform = transform
         self.save_dir = save_dir
 
-        image_files = sorted(os.listdir(image_dir))
-        label_files = sorted(os.listdir(label_dir))
-        self.paired_files = [
-            (img, lbl) for img, lbl in zip(image_files, label_files)
-            if os.path.splitext(img)[0] == os.path.splitext(lbl)[0]
-        ]
-        # if not self.paired_files:
-        #     raise ValueError("No matching image-label pairs found.")
-        
-        # create save img
+        # 获取文件名（去除扩展名），并存入字典，保留完整文件路径
+        image_dict = {os.path.splitext(f)[0]: f for f in sorted(os.listdir(image_dir))}
+        label_dict = {os.path.splitext(f)[0]: f for f in sorted(os.listdir(label_dir))}
+
+        # 仅匹配两边都存在的文件
+        common_keys = set(image_dict.keys()) & set(label_dict.keys())
+
+        self.paired_files = [(image_dict[k], label_dict[k]) for k in sorted(common_keys)]
+
+        if not self.paired_files:
+            raise ValueError("No matching image-label pairs found.")
+
+        # 创建保存目录
         if self.save_dir:
             os.makedirs(os.path.join(self.save_dir, "images"), exist_ok=True)
             os.makedirs(os.path.join(self.save_dir, "labels"), exist_ok=True)
+
 
     def __len__(self):
         return len(self.paired_files)
@@ -66,7 +89,7 @@ class BreastCancerDataset(Dataset):
             Image.fromarray((image.permute(1, 2, 0).numpy() * 255).astype(np.uint8)).convert("L").save(save_image_path)
             Image.fromarray((label.numpy() * 255).astype(np.uint8)).convert("L").save(save_label_path)
 
-        return image, label
+        return image, label, img_name
 
 # Data Augmentation 数据增强 
 transform = A.Compose([

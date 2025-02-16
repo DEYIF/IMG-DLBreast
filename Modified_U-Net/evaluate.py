@@ -44,20 +44,30 @@ def calculate_dice_and_iou(gt_folder, result_folder):
         print(f"Error: Results folder '{result_folder}' does not exist.")
         return metrics
 
+    # 获取 result 文件夹中的所有文件名（不包含路径）
+    result_files = {os.path.splitext(f)[0]: f for f in os.listdir(result_folder)}
+
     # Iterate through ground truth files
-    for filename in os.listdir(gt_folder):
-        gt_path = os.path.join(gt_folder, filename)
-        result_path = os.path.join(result_folder, filename)
-        if not os.path.isfile(result_path):
+    for gt_filename in os.listdir(gt_folder):
+        gt_name, gt_ext = os.path.splitext(gt_filename)  # 分离文件名和扩展名
+        gt_path = os.path.join(gt_folder, gt_filename)
+
+        # 检查 result 文件夹中是否有对应的文件（忽略扩展名）
+        if gt_name not in result_files:
+            print(f"Warning: No matching result file found for '{gt_filename}'. Skipping.")
             continue
-        # Ensure the corresponding result file exists
-        if not os.path.isfile(result_path):
-            print(f"Warning: Result file for '{filename}' not found.")
-            continue
+
+        result_filename = result_files[gt_name]  # 获取完整的 result 文件名
+        result_path = os.path.join(result_folder, result_filename)
 
         # Load images
         gt_image = imread(gt_path, as_gray=True).astype(bool)
         result_image = imread(result_path, as_gray=True).astype(bool)
+
+        # Check if images are empty
+        if gt_image.sum() == 0 or result_image.sum() == 0:
+            print(f"Warning: One of the images is empty for '{gt_filename}'. Skipping this image.")
+            continue
 
         # 自动调整尺寸
         if result_image.shape != gt_image.shape:
@@ -69,9 +79,14 @@ def calculate_dice_and_iou(gt_folder, result_folder):
         dice = (2 * intersection) / (gt_image.sum() + result_image.sum() + 1e-6)  # Avoid division by zero
         iou = intersection / (union + 1e-6)  # Avoid division by zero
 
+        # Check for NaN values and skip this result if any
+        if np.isnan(dice) or np.isnan(iou):
+            print(f"Warning: NaN value encountered for '{gt_filename}'. Skipping this image.")
+            continue
+
         # Append metrics
-        metrics.append((filename, dice, iou))
-        print(f"File: {filename}, Dice: {dice:.4f}, IoU: {iou:.4f}")
+        metrics.append((gt_filename, dice, iou))
+        print(f"File: {gt_filename}, Dice: {dice:.4f}, IoU: {iou:.4f}")
 
     return metrics
 
