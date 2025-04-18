@@ -139,6 +139,10 @@ else:
     test_label_dir = os.path.join(dataset_dir, 'test', 'labels')
     test_augu_dir = os.path.join(dataset_dir, 'augmented', 'test')
 
+    # test_image_dir = os.path.join(dataset_dir, 'images')
+    # test_label_dir = os.path.join(dataset_dir, 'labels')
+    # test_augu_dir = os.path.join(dataset_dir, 'augmented')
+
     test_dataset = BreastCancerDataset(test_image_dir, test_label_dir, transform=test_transform, save_dir=None)
     test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False) 
 

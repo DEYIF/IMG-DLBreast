@@ -9,6 +9,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2 
 import os
 from PIL import Image
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm 
