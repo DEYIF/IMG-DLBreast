@@ -15,11 +15,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm 
 # 修改
-from Prepare_dataset import dataset_dir, is_train
+from Prepare_dataset import dataset_dir, is_train, dataset_type
 if is_train:
     from Prepare_dataset import train_loader
 else:
-    from Prepare_dataset import test_loader
+    from Prepare_dataset import test_loader, test_prefixes
 from code_UNet_model import UNet, Encoder
 import evaluate
 from datetime import datetime
@@ -52,15 +52,15 @@ class BCEDiceLoss(nn.Module):
 def train_model(model, train_loader, criterion, optimizer, save_root, num_epochs=50): # criterions is the loss function
     model.train() # Activate training mode in the model
 
-    # 生成唯一的文件夹名称（基于当前时间）
+    # Generate unique folder name (based on current time)
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     save_path = os.path.join(save_root, f"training_{timestamp}")
-    os.makedirs(save_path, exist_ok=True)  # 确保目录存在
-    N = 5  # 每 5 轮保存一次
+    os.makedirs(save_path, exist_ok=True)  # Ensure directory exists
+    N = 10  # Save every 10 epochs
 
     for epoch in tqdm(range(num_epochs)):
         epoch_loss = 0 # Initialize a variable to accumulate the total loss for the current epoch.
-        for images, labels in train_loader:
+        for images, labels, _ in train_loader:
             images, labels = images.to(device), labels.to(device) # Transfer to appropriate device for processing
             optimizer.zero_grad() # Resets gradient of model's parameter as gradients persist in Pytorch by default and must be cleared before backpropagation
             outputs = model(images) # Passes the input images through the model to generate predictions (outputs)
@@ -76,14 +76,41 @@ def train_model(model, train_loader, criterion, optimizer, save_root, num_epochs
           torch.save(model, f"{save_path}/model_full_{epoch+1}.pth")
 
 def evaluate_model(model, test_loader):
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # model = model.to(device)
     model.eval()
-    test_image_dir = os.path.join(dataset_dir, 'test', 'images')
-    # original_filenames = sorted(os.listdir(test_image_dir))
-
-    save_dir = os.path.join(dataset_dir, 'test', 'prompts')
+    
+    # Generate timestamp for folder names
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
+    
+    # Create dataset suffix from test_prefixes
+    if hasattr(test_loader.dataset, 'test_prefixes') and test_loader.dataset.test_prefixes:
+        dataset_suffix = ','.join(test_loader.dataset.test_prefixes)
+    elif 'test_prefixes' in globals() and test_prefixes:
+        dataset_suffix = ','.join(test_prefixes)
+    else:
+        dataset_suffix = "test"
+    
+    # Folder suffix format: dataset_suffix + timestamp 
+    folder_suffix = f"{dataset_suffix}_{timestamp}"
+    
+    # Determine image, label, and prediction paths based on dataset type
+    if dataset_type == 'standard':
+        # Standard dataset structure: with test subfolder
+        images_dir = os.path.join(dataset_dir, 'test', 'images')
+        labels_dir = os.path.join(dataset_dir, 'test', 'labels')
+        save_dir = os.path.join(dataset_dir, 'test', f"prompts_{folder_suffix}")
+        csv_folder = os.path.join(dataset_dir, 'test', f"csv_{folder_suffix}")
+    else:  # mixseg
+        # MixSeg dataset structure: directly in root directory
+        images_dir = os.path.join(dataset_dir, 'images')
+        labels_dir = os.path.join(dataset_dir, 'labels')
+        save_dir = os.path.join(dataset_dir, f"prompts_{folder_suffix}")
+        csv_folder = os.path.join(dataset_dir, f"csv_{folder_suffix}")
+    
     os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(csv_folder, exist_ok=True)
+    
+    print(f"Prediction results will be saved to: {save_dir}")
+    print(f"Evaluation metrics will be saved to: {csv_folder}")
 
     with torch.no_grad():
         for idx, (images, labels, filenames) in enumerate(test_loader):
@@ -91,10 +118,8 @@ def evaluate_model(model, test_loader):
             outputs = torch.sigmoid(model(images))
             outputs = (outputs > 0.5).float()
 
-
             for i in range(len(outputs)):
-                # original_filename = original_filenames[idx * len(outputs) + i]
-                original_filename = filenames[i]  # 直接从 DataLoader 获取
+                original_filename = filenames[i]  # Get directly from DataLoader
                 name, ext = os.path.splitext(original_filename)
                 new_filename = f"{name}.png"
                 mask = outputs[i].squeeze().cpu().numpy() * 255
@@ -102,51 +127,47 @@ def evaluate_model(model, test_loader):
                 mask_path = os.path.join(save_dir, new_filename)
                 os.makedirs(os.path.dirname(mask_path), exist_ok=True)
                 Image.fromarray(mask).save(mask_path)
-            print(f"Predictions saved in: {save_dir}")
+            print(f"Batch {idx+1} predictions saved.")
 
-            step = min(5, len(images))  # 确保 step 不会超出范围
-            # 选取间隔step的索引
+            step = min(5, len(images))  # Ensure step is within range
+            # Select indices at step intervals
             indices = list(range(0, len(images), step))
             if not indices:
                 continue
 
-            # num_selected = len(indices)
-            # if num_selected == 0:
-            #     continue  # 如果没有足够的样本，跳过
-            # fig, axes = plt.subplots(num_selected, 3, figsize=(10, num_selected * 3), squeeze=False)
-
             fig, axes = plt.subplots(len(indices), 3, figsize=(10, len(indices) * 3), squeeze=False)
 
-            # 设置每列的标题，只在第一行显示
+            # Set column titles, only shown in first row
             column_titles = ["Input Image", "True Mask", "Predicted Mask"]
             for col in range(3):
                 axes[0, col].set_title(column_titles[col])
 
-            for row, idx in enumerate(indices):  # 遍历被选中的索引
-                # 直接使用张量，无需反归一化
+            for row, idx in enumerate(indices):  # Iterate through selected indices
+                # Use tensors directly, no need for denormalization
 
                 image = images[idx].cpu().permute(1, 2, 0).numpy()
-                image = np.clip(image, 0, 1)  # 确保值在 [0,1]
+                image = np.clip(image, 0, 1)  # Ensure values in [0,1]
 
-                # 绘制输入图像
+                # Draw input image
                 axes[row, 0].imshow(image)
                 axes[row, 0].axis('off')
 
-                # 绘制真实标签
+                # Draw true label
                 axes[row, 1].imshow(labels[idx].cpu().numpy().squeeze(), cmap='gray')
                 axes[row, 1].axis('off')
 
-                # 绘制预测结果
+                # Draw prediction
                 axes[row, 2].imshow(outputs[idx].cpu().numpy().squeeze(), cmap='gray')
                 axes[row, 2].axis('off')
 
             plt.tight_layout()
             plt.show()
     
-    # Input ground truth and result folders
-    gt_folder = os.path.join(dataset_dir, 'test', 'labels')
+    print(f"All predictions saved in: {save_dir}")
+    
+    # Use previously determined label and result directories
+    gt_folder = labels_dir
     result_folder = save_dir
-    csv_folder = os.path.join(dataset_dir, 'test', 'csv')
 
     gt_files = {os.path.splitext(f)[0] for f in os.listdir(gt_folder)}
     result_files = {os.path.splitext(f)[0] for f in os.listdir(result_folder)}
@@ -154,11 +175,6 @@ def evaluate_model(model, test_loader):
     missing_files = gt_files - result_files
     if missing_files:
         print(f"Warning: Missing result files for {len(missing_files)} ground truth images: {missing_files}")
-
-    # Ensure the CSV folder exists, create it if it doesn't
-    if not os.path.exists(csv_folder):
-        os.makedirs(csv_folder)
-        print(f"Created folder: {csv_folder}")
 
     # Calculate metrics
     results = evaluate.calculate_dice_and_iou(gt_folder, result_folder)
@@ -198,12 +214,13 @@ if __name__ == "__main__":
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1) 
     
     if is_train:
-        train_model(model, train_loader, criterion, optimizer, num_epochs=8)
-        torch.save(model.state_dict(), 'model_sd.pth')
+        save_root = input("Enter model save path (default: /root/checkpoints): ") or '/root/checkpoints'
+        train_model(model, train_loader, criterion, optimizer, save_root=save_root, num_epochs=8)
+        torch.save(model.state_dict(), f'{save_root}/model_sd_latest.pth')
         # torch.save(model, 'model_full.pth')
     else:
         # Load training
-        model_path = input("Please enter the path to the model(default:/root/checkpoints/model_sd_epoch_10.pth):") or '/root/checkpoints/model_sd_epoch_10.pth'
+        model_path = input("Enter model path (default: /root/checkpoints/model_sd_epoch_10.pth): ") or '/root/checkpoints/model_sd_epoch_10.pth'
         # my_model = torch.load(model_path)
         model.load_state_dict(torch.load(model_path, map_location=device))  
         evaluate_model(model, test_loader)
